@@ -1,3 +1,4 @@
+// Package scene contains all main entities for rendering and/or interaction with the user.
 package scene
 
 import (
@@ -6,12 +7,14 @@ import (
 	"github.com/adrianderstroff/realtime-grass/pkg/engine"
 )
 
+// Sky renders a skybox around the scene.
 type Sky struct {
 	shader *engine.ShaderProgram
 	skybox *engine.Skybox
 	tex    *engine.Texture
 }
 
+// MakeSky constructs a Sky given the folder to the cube map textures.
 func MakeSky(shaderpath, skypath string) (Sky, error) {
 	// make skybox
 	cubemappath := skypath + "day/"
@@ -29,7 +32,7 @@ func MakeSky(shaderpath, skypath string) (Sky, error) {
 	}
 	skybox := engine.MakeSkybox(cubetex)
 
-	// make shader
+	// make skybox shader
 	shader, err := engine.MakeProgram(shaderpath+"skybox/skybox.vert", shaderpath+"skybox/skybox.frag")
 	if err != nil {
 		panic(err)
@@ -44,9 +47,10 @@ func MakeSky(shaderpath, skypath string) (Sky, error) {
 	}, nil
 }
 
-func (sky *Sky) Render(V, P mgl32.Mat4) {
+// Render draws the skybox for the given view and projection matrices.
+func (sky *Sky) Render(V, P *mgl32.Mat4) {
 	sky.shader.Use()
-	sky.shader.UpdateMat4("V", V)
-	sky.shader.UpdateMat4("P", P)
+	sky.shader.UpdateMat4("V", *V)
+	sky.shader.UpdateMat4("P", *P)
 	sky.shader.Render()
 }

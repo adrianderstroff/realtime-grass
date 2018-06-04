@@ -1,3 +1,4 @@
+// Package scene contains all main entities for rendering and/or interaction with the user.
 package scene
 
 import (
@@ -9,6 +10,9 @@ import (
 	"github.com/adrianderstroff/realtime-grass/pkg/mathutils"
 )
 
+// Wind has two grids of the same size for the wind velocity and acceleration.
+// The movement of the camera creates acceleration around the camera.
+// The acceleration intensity is a bell-curve with strong acceleration near the center that degrades to the outside.
 type Wind struct {
 	shader            *engine.ShaderProgram
 	velocityfield     *engine.SSBO
@@ -23,11 +27,17 @@ type Wind struct {
 	t                 float32
 }
 
+// MakeWind constructs the Wind struct.
+// The side of a wind grid is 2*radius+1 making each grid an odd number of cells.
+// The influence specifies the relation between grid radius and bell-curve spread.
+// The bell-curve spread is calculated by radius/influence.
+// This means that higher values of influence yield a stronger contracted spread.
+// The cellsize has to equal the tilesize of the terrain.
 func MakeWind(shaderpath string, radius int, influence, cellsize float32) (Wind, error) {
 	griddim := 2*radius + 1
 	fieldsize := griddim * griddim
 
-	// both fields store vec4 (4 x float32)
+	// both grids store a vec4 (4 x float32) per cell
 	valuecount := 4
 	bytesize := 4 * valuecount
 
@@ -43,19 +53,19 @@ func MakeWind(shaderpath string, radius int, influence, cellsize float32) (Wind,
 		dz := 4 * float64(z-radius) / float64(radius) * float64(influence)
 		for x := 0; x < griddim; x++ {
 			dx := 4 * float64(x-radius) / float64(radius) * float64(influence)
-			// calculate vector
+			// calculate acceleration vector
 			e := math.Pow(math.E, -(dx*dx)-(dz*dz))
 			idx := (z*griddim + x) * valuecount
 			afielddata[idx] = float32(dx) * float32(e)
 			afielddata[idx+1] = float32(dz) * float32(e)
 			afielddata[idx+2] = 0.0
 			afielddata[idx+3] = 0.0
-			// calculate max
+			// calculate max magnitude of all acceleration vectors
 			max = mathutils.MaxF32(max, afielddata[idx])
 			max = mathutils.MaxF32(max, afielddata[idx+1])
 		}
 	}
-	// normalize values
+	// normalize values in such a way that the magnitudes of all acceleration vectors are between 0 and 1
 	for z := 0; z < griddim; z++ {
 		for x := 0; x < griddim; x++ {
 			idx := (z*griddim + x) * valuecount
@@ -89,8 +99,11 @@ func MakeWind(shaderpath string, radius int, influence, cellsize float32) (Wind,
 	}, nil
 }
 
+// Update performs the wind simulation.
+// pos is the new camera position and is used to specify the new center position of the wind grid.
+// cameradelta is the vector from the previous to the current camera position.
 func (wind *Wind) Update(pos, cameradelta mgl32.Vec3) {
-	// get cell in which the actor is in
+	// get cell in which the camera is in
 	centerx := int32(pos.X() / wind.cellsize)
 	centerz := int32(pos.Z() / wind.cellsize)
 	if pos.X() < 0 {

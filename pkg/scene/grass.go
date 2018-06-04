@@ -1,3 +1,4 @@
+// Package scene contains all main entities for rendering and/or interaction with the user.
 package scene
 
 import (
@@ -9,6 +10,7 @@ import (
 	"github.com/adrianderstroff/realtime-grass/pkg/engine"
 )
 
+// Grass renders individual grass blades on every Tile of the Terrain.
 type Grass struct {
 	shader        engine.ShaderProgram
 	buffer        engine.Mesh
@@ -24,6 +26,11 @@ type Grass struct {
 	windradius    int32
 }
 
+// MakeGrass constructs the Grass entity.
+// The bladecount is the number of grass blades per Tile.
+// Height is the maximum height of the grass blades.
+// The viewdist is the far value of the camera.
+// The windradius is the radius of the Wind grid.
 func MakeGrass(shaderpath, texpath string, bladecount int, height, viewdist float32, windradius int32) (Grass, error) {
 	// make shader
 	shader, err := engine.MakeGeomProgram(shaderpath+"/grass/grass.vert", shaderpath+"/grass/grass.geom", shaderpath+"/grass/grass.frag")
@@ -90,6 +97,7 @@ func MakeGrass(shaderpath, texpath string, bladecount int, height, viewdist floa
 	}, nil
 }
 
+// Render draws all grass blades using a LOD approach.
 func (grass *Grass) Render(instancecount int32, tilesize float32, M, V, P mgl32.Mat4, camerapos mgl32.Vec3) {
 	lightdir := mgl32.Vec3{10.0, 0.0, 10.0}
 	lightcolor := mgl32.Vec3{1.0, 1.0, 0.0}

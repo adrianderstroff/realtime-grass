@@ -1,3 +1,4 @@
+// Package scene contains all main entities for rendering and/or interaction with the user.
 package scene
 
 import (
@@ -7,6 +8,7 @@ import (
 	"github.com/adrianderstroff/realtime-grass/pkg/engine"
 )
 
+// Postprocessing contains several postprocessing shaders.
 type Postprocessing struct {
 	width            float32
 	height           float32
@@ -23,6 +25,7 @@ type Postprocessing struct {
 	scale            float32
 }
 
+// MakePostprocessing creates the Postprocessing entitiy and FBOs of the specified width and height.
 func MakePostprocessing(shaderpath string, width, height int32) (Postprocessing, error) {
 	// setup shaders
 	luminocityshader, err := engine.MakeProgram(shaderpath+"postprocessing/pass.vert", shaderpath+"postprocessing/luminocity.frag")
@@ -78,8 +81,9 @@ func MakePostprocessing(shaderpath string, width, height int32) (Postprocessing,
 	}, nil
 }
 
+// Bloom enhances bright pixels and darkens the rest.
 func (pp *Postprocessing) Bloom(fbo *engine.FBO) {
-	// luminocity calculating
+	// calculate per pixel luminocity
 	pp.fboa.Bind()
 	pp.fboa.Clear()
 	fbo.ColorTextures[0].Bind(0)
@@ -89,7 +93,7 @@ func (pp *Postprocessing) Bloom(fbo *engine.FBO) {
 	fbo.ColorTextures[0].Unbind()
 	pp.fboa.Unbind()
 
-	// gaussian blur in x and y
+	// 1D gaussian blur in x and y
 	pp.gaussian(pp.fboa, pp.fbob, pp.blurradius, pp.width, mgl32.Vec2{1, 0})
 	pp.gaussian(pp.fbob, pp.fboa, pp.blurradius, pp.height, mgl32.Vec2{0, 1})
 
@@ -107,6 +111,9 @@ func (pp *Postprocessing) Bloom(fbo *engine.FBO) {
 	// copy tex to output
 	pp.fbob.CopyColorToFBO(fbo, 0, 0, int32(pp.width), int32(pp.height))
 }
+
+// Fog desaturates pixels in the distance.
+// Pixels around the light source get a yellish tint while the further away from the light direction pixels get a bluish tint.
 func (pp *Postprocessing) Fog(fbo *engine.FBO, camera *engine.CameraFPS) {
 	// get inverse view projection matrix
 	invviewproj := camera.GetViewPerspective().Inv()
@@ -132,6 +139,8 @@ func (pp *Postprocessing) Fog(fbo *engine.FBO, camera *engine.CameraFPS) {
 	// copy result
 	pp.fboa.CopyColorToFBO(fbo, 0, 0, int32(pp.width), int32(pp.height))
 }
+
+// DOF or depth of field adds blur to distant pixels.
 func (pp *Postprocessing) DOF(fbo *engine.FBO) {
 	// gaussian blur
 	pp.gaussian2d(fbo, pp.fbob, pp.width, pp.height)
@@ -157,6 +166,9 @@ func (pp *Postprocessing) DOF(fbo *engine.FBO) {
 	pp.fboa.CopyColorToFBO(fbo, 0, 0, int32(pp.width), int32(pp.height))
 }
 
+// gaussian 2d applies gaussian blur in x and y direction.
+// The color is taken fro the in FBO and the result of the gaussian blur is written to the out FBO.
+// The width and height have to match the width and height of the in and out FBOs.
 func (pp *Postprocessing) gaussian2d(in, out *engine.FBO, width, height float32) {
 	w := int32(width)
 	h := int32(height)
@@ -166,13 +178,19 @@ func (pp *Postprocessing) gaussian2d(in, out *engine.FBO, width, height float32)
 	// downscale
 	in.CopyColorToFBORegionSmooth(pp.fbosmalla, 0, 0, w, h, 0, 0, wsmall, hsmall)
 	gl.Viewport(0, 0, wsmall, hsmall)
-	// euler in x
+	// 1D gaussian blur in x and y
 	pp.gaussian(pp.fbosmalla, pp.fbosmallb, 1.0, float32(wsmall), mgl32.Vec2{1, 0})
 	pp.gaussian(pp.fbosmallb, pp.fbosmalla, 1.0, float32(hsmall), mgl32.Vec2{0, 1})
 	// upscale
 	gl.Viewport(0, 0, w, h)
 	pp.fbosmalla.CopyColorToFBORegionSmooth(out, 0, 0, wsmall, hsmall, 0, 0, w, h)
 }
+
+// gaussian performs a 1D gaussian blur.
+// radius specifies the skip between pixels used for the blur.
+// A value of 1 means that all pixels that are directly besides each other are being used.
+// The dimension has to be width if dir is (1, 0) and height if dir is (0, 1).
+// The dir specifies in which direction the gaussian blur is applied.
 func (pp *Postprocessing) gaussian(in, out *engine.FBO, radius, dimension float32, dir mgl32.Vec2) {
 	out.Bind()
 	out.Clear()

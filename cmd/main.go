@@ -108,8 +108,8 @@ func main() {
 
 		// render skybox
 		fbo.Bind()
-		Vc := mathutils.ExtractRotation(V)
-		sky.Render(Vc, P)
+		Vc := mathutils.ExtractRotation(&V)
+		sky.Render(&Vc, &P)
 		fbo.Unbind()
 
 		// add fog

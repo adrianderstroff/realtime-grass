@@ -118,6 +118,36 @@ func (data *RawImageData) GetRGBA(x, y int32) (uint8, uint8, uint8, uint8) {
 	return data.data[idx], data.data[idx+1], data.data[idx+2], data.data[idx+3]
 }
 
+func (data *RawImageData) SetR(x, y int32, r uint8) {
+	idx := data.getIdx(x, y)
+	data.data[idx] = r
+}
+func (data *RawImageData) SetG(x, y int32, g uint8) {
+	idx := data.getIdx(x, y)
+	data.data[idx+1] = g
+}
+func (data *RawImageData) SetB(x, y int32, b uint8) {
+	idx := data.getIdx(x, y)
+	data.data[idx+2] = b
+}
+func (data *RawImageData) SetA(x, y int32, a uint8) {
+	idx := data.getIdx(x, y)
+	data.data[idx+3] = a
+}
+func (data *RawImageData) SetRGB(x, y int32, r, g, b uint8) {
+	idx := data.getIdx(x, y)
+	data.data[idx] = r
+	data.data[idx+1] = g
+	data.data[idx+2] = b
+}
+func (data *RawImageData) SetRGBA(x, y int32, r, g, b, a uint8) {
+	idx := data.getIdx(x, y)
+	data.data[idx] = r
+	data.data[idx+1] = g
+	data.data[idx+2] = b
+	data.data[idx+3] = a
+}
+
 func (data *RawImageData) getIdx(x, y int32) int32 {
 	return (y*data.width + x) * 4
 }

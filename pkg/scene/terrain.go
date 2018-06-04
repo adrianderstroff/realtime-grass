@@ -11,6 +11,11 @@ import (
 	"github.com/adrianderstroff/realtime-grass/pkg/mathutils"
 )
 
+// Terrain is an infinite terrain that updates itself depending on the position of the camera.
+// It consists of several Chunks that themselves consist of several Tiles.
+// Each frame Chunks out of the view distance of the camera are being destroyed while Chunks
+// that just got inside view distance are being created.
+// Each frame all Chunks that are either inside or intersect the view frustum are collected and rendered.
 type Terrain struct {
 	// rendering
 	shader        engine.ShaderProgram
@@ -33,6 +38,18 @@ type Terrain struct {
 	unloaddist float32
 }
 
+// MakeTerrain constructs a Terrain entity.
+// Blocksize specifies the size of the height-map.
+// Thus a big value for blocksize stretches the height-map.
+// The blockresolution specifies the number of Chunks in x and z direction.
+// While the chunkresolution specifies the number of Tiles in a Chunk in x and z direction.
+// The terrainheight is the maximum height of the terrain.
+// Bladecount specifies the number of grass blades per Tile.
+// The grassheight is the maximum height of the grass.
+// Viewdist is used the specify when to delete and create Chunks.
+// The windradius specifies the radius of the Wind grid.
+// Windinfluence specifes the compression of the bell curve used for the Wind acceleration relative to the windradius.
+// A bigger value for the windinfluence mean that the bell curve is more compressed.
 func MakeTerrain(shaderpath, texpath string, blocksize float32, blockresolution, chunkresolution int32, terrainheight float32, bladecount int, grassheight, viewdist float32, windradius int32, windinfluence float32) (Terrain, error) {
 	// setup shaderprogram
 	shader, err := engine.MakeGeomProgram(shaderpath+"/terrain/terrain.vert", shaderpath+"/terrain/terrain.geom", shaderpath+"/terrain/terrain.frag")
@@ -107,6 +124,9 @@ func MakeTerrain(shaderpath, texpath string, blocksize float32, blockresolution,
 		unloaddist: viewdist + chunksize,
 	}, nil
 }
+
+// Update delete and creates new Chunks depending on the distance to the camera.
+// In addition a view frustum culling is performed to only use the Chunks that are inside the view frustum or intersecting it.
 func (terrain *Terrain) Update(pos, cameradelta mgl32.Vec3, mvp mgl32.Mat4) {
 	// update wind
 	terrain.wind.Update(pos, cameradelta)
@@ -140,6 +160,8 @@ func (terrain *Terrain) Update(pos, cameradelta mgl32.Vec3, mvp mgl32.Mat4) {
 	terrain.terrainbuffer.Resize(int(tilecount))
 	terrain.terrainbuffer.UploadArray(data)
 }
+
+// Render draws the Chunks that had been collected in the Update method.
 func (terrain *Terrain) Render(M, V, P mgl32.Mat4, camerapos mgl32.Vec3) {
 	lightdir := mgl32.Vec3{2.0, 2.0, 0.0}
 	lightcolor := mgl32.Vec3{0.0, 1.0, 0.0}
@@ -168,6 +190,8 @@ func (terrain *Terrain) Render(M, V, P mgl32.Mat4, camerapos mgl32.Vec3) {
 	terrain.terrainbuffer.Unbind()
 	terrain.wind.velocityfield.Unbind()
 }
+
+// GetHeight returns the height of the terrain at the specified position pos.
 func (terrain *Terrain) GetHeight(pos mgl32.Vec3) float32 {
 	x, z := terrain.getChunkPos(pos.X(), pos.Z())
 
@@ -216,6 +240,9 @@ func (terrain *Terrain) GetHeight(pos mgl32.Vec3) float32 {
 	}
 	return height
 }
+
+// load creates new Chunks that are within the viewing distance to the camera at position pos.
+// New Chunks are only created if they are not present yet.
 func (terrain *Terrain) load(pos mgl32.Vec3) {
 	centerx, centerz := terrain.getChunkPos(pos.X(), pos.Z())
 
@@ -242,6 +269,8 @@ func (terrain *Terrain) load(pos mgl32.Vec3) {
 		}
 	}
 }
+
+// unload destroys Chunks that are outside the view distance of the camera at position pos.
 func (terrain *Terrain) unload(pos mgl32.Vec3) {
 	for key, chunk := range terrain.chunks {
 		if distxz(chunk.pos, pos) > terrain.unloaddist {
@@ -249,6 +278,8 @@ func (terrain *Terrain) unload(pos mgl32.Vec3) {
 		}
 	}
 }
+
+// getChunkPos returns the coordinate of a Chunk at position (x,z).
 func (terrain *Terrain) getChunkPos(x, z float32) (int32, int32) {
 	cx := int32(x / terrain.chunksize)
 	cz := int32(z / terrain.chunksize)
@@ -260,9 +291,13 @@ func (terrain *Terrain) getChunkPos(x, z float32) (int32, int32) {
 	}
 	return cx, cz
 }
+
+// makeKey used the (x,z) coordinate of a Chunk as its unique key.
 func makeKey(x, z int32) string {
 	return fmt.Sprint(x, "-", z)
 }
+
+// distxz returns the 2D euclidean distance in the x-z plane between posa and posb.
 func distxz(posa, posb mgl32.Vec3) float32 {
 	dx := mathutils.AbsF32(posa.X() - posb.X())
 	dz := mathutils.AbsF32(posa.Z() - posb.Z())
