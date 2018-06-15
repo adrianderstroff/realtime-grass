@@ -63,3 +63,11 @@ TODO
 ### Postprocessing
 
 TODO 
+
+## ToDo
+
+- [ ] Consistent variable and struct naming
+- [ ] Using references where possible
+- [ ] Rework Mesh code
+- [ ] Rework Texture and Image
+- [ ] Split Window and Interaction

@@ -1,3 +1,5 @@
+// Package engine provides an abstraction layer on top of OpenGL.
+// It contains entities relevant for rendering.
 package engine
 
 import (
@@ -6,6 +8,7 @@ import (
 	"github.com/go-gl/gl/v4.3-core/gl"
 )
 
+// CheckGLError can be used after any interaction with OpenGL to grab the last error from the GPU.
 func CheckGLError() {
 	err := gl.GetError()
 	if err != gl.NO_ERROR {

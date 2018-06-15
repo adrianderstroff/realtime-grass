@@ -9,11 +9,13 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 )
 
+// ShaderProgram represents a shader program object and contains all Renderables that share the same shader.
 type ShaderProgram struct {
 	programHandle uint32
 	renderables   []Renderable
 }
 
+// MakeProgram contrusts a ShaderProgram that consists of a vertex and fragment shader.
 func MakeProgram(vertexShaderPath, fragmentShaderPath string) (ShaderProgram, error) {
 	// loads files
 	vertexShaderSource, err := loadFile(vertexShaderPath)
@@ -62,6 +64,7 @@ func MakeProgram(vertexShaderPath, fragmentShaderPath string) (ShaderProgram, er
 	return shaderProgram, nil
 }
 
+// MakeGeomProgram contrusts a ShaderProgram that consists of a vertex, geometry and fragment shader.
 func MakeGeomProgram(vertexShaderPath, geometryShaderPath, fragmentShaderPath string) (ShaderProgram, error) {
 	// loads files
 	vertexShaderSource, err := loadFile(vertexShaderPath)
@@ -121,6 +124,7 @@ func MakeGeomProgram(vertexShaderPath, geometryShaderPath, fragmentShaderPath st
 	return shaderProgram, nil
 }
 
+// MakeComputeProgram contrusts a ShaderProgram that consists of a compute shader.
 func MakeComputeProgram(computeShaderPath string) (ShaderProgram, error) {
 	// loads files
 	computeShaderSource, err := loadFile(computeShaderPath)
@@ -160,59 +164,83 @@ func MakeComputeProgram(computeShaderPath string) (ShaderProgram, error) {
 	return shaderProgram, nil
 }
 
+// AddRenderable adds a Rendereable to the slices of Renderables that should be rendered.
 func (shaderProgram *ShaderProgram) AddRenderable(renderable Renderable) {
 	renderable.Build(shaderProgram.programHandle)
 	shaderProgram.renderables = append(shaderProgram.renderables, renderable)
 }
+
+// RemoveAllRenderables removes all Renderables.
 func (ShaderProgram *ShaderProgram) RemoveAllRenderables() {
 	// TODO: should renderables be deleted?
 	ShaderProgram.renderables = nil
 }
+
+// Render draws all Renderables that had been added to this ShaderProgram.
 func (shaderProgram *ShaderProgram) Render() {
 	for _, renderable := range shaderProgram.renderables {
 		renderable.Render()
 	}
 }
+
+// RenderInstances draws all Renderables each multiple times defined by instancecount.
 func (shaderProgram *ShaderProgram) RenderInstanced(instancecount int32) {
 	for _, renderable := range shaderProgram.renderables {
 		renderable.RenderInstanced(instancecount)
 	}
 }
+
+// Compute needs to be called when the shader is a compute shader.
+// The group sizes of the compute shader have to specified in the x,y and z dimension.
+// The dimensions need to be > 1.
 func (ShaderProgram *ShaderProgram) Compute(numgroupsx, numgroupsy, numgroupsz uint32) {
 	gl.DispatchCompute(numgroupsx, numgroupsy, numgroupsz)
 }
+
+// Use binds the shader for rendering. Call it before calling Render.
 func (shaderProgram *ShaderProgram) Use() {
 	gl.UseProgram(shaderProgram.programHandle)
 }
+
+// Delete deletes the OpenGL ShaderProgram handle.
 func (shaderProgram *ShaderProgram) Delete() {
 	gl.DeleteProgram(shaderProgram.programHandle)
 	shaderProgram.renderables = nil
 }
 
+// UpdateInt32 updates the value of an 32bit int in the shader.
 func (shaderProgram *ShaderProgram) UpdateInt32(uniformName string, i32 int32) {
 	location := gl.GetUniformLocation(shaderProgram.programHandle, gl.Str(uniformName+"\x00"))
 	if location != -1 {
 		gl.Uniform1i(location, i32)
 	}
 }
+
+// UpdateInt32 updates the value of an 32bit float in the shader.
 func (shaderProgram *ShaderProgram) UpdateFloat32(uniformName string, f32 float32) {
 	location := gl.GetUniformLocation(shaderProgram.programHandle, gl.Str(uniformName+"\x00"))
 	if location != -1 {
 		gl.Uniform1f(location, f32)
 	}
 }
+
+// UpdateInt32 updates the value of an vec2 in the shader.
 func (shaderProgram *ShaderProgram) UpdateVec2(uniformName string, vec2 mgl32.Vec2) {
 	location := gl.GetUniformLocation(shaderProgram.programHandle, gl.Str(uniformName+"\x00"))
 	if location != -1 {
 		gl.Uniform2fv(location, 1, &vec2[0])
 	}
 }
+
+// UpdateInt32 updates the value of an vec3 in the shader.
 func (shaderProgram *ShaderProgram) UpdateVec3(uniformName string, vec3 mgl32.Vec3) {
 	location := gl.GetUniformLocation(shaderProgram.programHandle, gl.Str(uniformName+"\x00"))
 	if location != -1 {
 		gl.Uniform3fv(location, 1, &vec3[0])
 	}
 }
+
+// UpdateInt32 updates the value of an mat4 in the shader.
 func (shaderProgram *ShaderProgram) UpdateMat4(uniformName string, mat mgl32.Mat4) {
 	location := gl.GetUniformLocation(shaderProgram.programHandle, gl.Str(uniformName+"\x00"))
 	if location != -1 {
@@ -220,10 +248,12 @@ func (shaderProgram *ShaderProgram) UpdateMat4(uniformName string, mat mgl32.Mat
 	}
 }
 
+// Returns a handle to the ShaderProgram.
 func (shaderProgram *ShaderProgram) GetHandle() uint32 {
 	return shaderProgram.programHandle
 }
 
+// loadFile returns the contents of a file as a zero terminated string.
 func loadFile(filepath string) (string, error) {
 	bytes, err := ioutil.ReadFile(filepath)
 
@@ -234,6 +264,8 @@ func loadFile(filepath string) (string, error) {
 	bytes = append(bytes, '\000')
 	return string(bytes), nil
 }
+
+// compileShader compiles a shader with the specified shaderType.
 func compileShader(source string, shaderType uint32) (uint32, error) {
 	shader := gl.CreateShader(shaderType)
 
@@ -250,6 +282,9 @@ func compileShader(source string, shaderType uint32) (uint32, error) {
 
 	return shader, nil
 }
+
+// getGLError checks for an error during shader compilation.
+// If an error has been occured it will return this error with a human readable error message.
 func getGLError(shader uint32, statusType int) error {
 	var status int32
 	gl.GetShaderiv(shader, gl.COMPILE_STATUS, &status)

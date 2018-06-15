@@ -1,3 +1,5 @@
+// Package engine provides an abstraction layer on top of OpenGL.
+// It contains entities relevant for rendering.
 package engine
 
 import (
@@ -6,6 +8,8 @@ import (
 	"github.com/go-gl/gl/v4.3-core/gl"
 )
 
+// SSBO is a buffer that can hold different kinds of data.
+// The typesize specifies the byte size of one element and len specifes the number of elements.
 type SSBO struct {
 	handle   uint32
 	typesize int
@@ -13,6 +17,7 @@ type SSBO struct {
 	pos      int32
 }
 
+// MakeSSBO constructs a SSBO with the byte size of one element and the number of elements.
 func MakeSSBO(typesize, len int) SSBO {
 	ssbo := SSBO{
 		0,
@@ -23,6 +28,8 @@ func MakeSSBO(typesize, len int) SSBO {
 	ssbo.init()
 	return ssbo
 }
+
+// MakeEmptySSBO constructs a SSBO with the byte size of one element and a length of zero.
 func MakeEmptySSBO(typesize int) SSBO {
 	ssbo := SSBO{
 		0,
@@ -34,6 +41,7 @@ func MakeEmptySSBO(typesize int) SSBO {
 	return ssbo
 }
 
+// Delete destroys the SSBO and deletes the buffer data on the GPU.
 func (ssbo *SSBO) Delete() {
 	// unbind if not done yet
 	if ssbo.pos != -1 {
@@ -46,17 +54,24 @@ func (ssbo *SSBO) Delete() {
 	ssbo.len = 0
 }
 
+// Len returns the current size of the SSBO.
 func (ssbo *SSBO) Len() int {
 	return ssbo.len
 }
+
+// GetHandle returns the handle to the buffer on the GPU.
 func (ssbo *SSBO) GetHandle() uint32 {
 	return ssbo.handle
 }
 
+// Bind makes this buffer available at the specified position.
+// The pos attribute has to coincide with the order of buffer within the shader.
 func (ssbo *SSBO) Bind(pos int32) {
 	ssbo.pos = pos
 	gl.BindBufferBase(gl.SHADER_STORAGE_BUFFER, uint32(ssbo.pos), ssbo.handle)
 }
+
+// Unbind makes this buffer unavailable for reading and writing.
 func (ssbo *SSBO) Unbind() {
 	if ssbo.pos == -1 {
 		return
@@ -66,6 +81,7 @@ func (ssbo *SSBO) Unbind() {
 	ssbo.pos = -1
 }
 
+// Resize changes the length of the buffer.
 func (ssbo *SSBO) Resize(len int) {
 	// early return if size stayed the same
 	if ssbo.len == len {
@@ -97,6 +113,8 @@ func (ssbo *SSBO) Resize(len int) {
 	ssbo.handle = newhandle
 }
 
+// UploadValue fills the buffer with one element N times where N is the length of the buffer.
+// Thus the length of value has to match the bytesize specified on construction of the SSBO.
 func (ssbo *SSBO) UploadValue(value []float32) {
 	// fill array with value
 	values := []float32{}
@@ -109,6 +127,9 @@ func (ssbo *SSBO) UploadValue(value []float32) {
 	gl.BufferData(gl.SHADER_STORAGE_BUFFER, ssbo.typesize*ssbo.len, gl.Ptr(values), gl.DYNAMIC_COPY)
 	gl.BindBuffer(gl.SHADER_STORAGE_BUFFER, 0)
 }
+
+// UploadValueInRange value fills the buffer with one element starting at start len times into this SSBO.
+// Thus the length of value has to match the bytesize specified on construction of the SSBO.
 func (ssbo *SSBO) UploadValueInRange(value []float32, start, len int) {
 	// fill array with value
 	values := []float32{}
@@ -121,12 +142,18 @@ func (ssbo *SSBO) UploadValueInRange(value []float32, start, len int) {
 	gl.BufferSubData(gl.SHADER_STORAGE_BUFFER, ssbo.typesize*start, ssbo.typesize*len, gl.Ptr(values))
 	gl.BindBuffer(gl.SHADER_STORAGE_BUFFER, 0)
 }
+
+// UploadArray replaces the data on the GPU with the data in values.
+// Make sure that the size of values matches the bytesize*len of the SSBO.
 func (ssbo *SSBO) UploadArray(values []float32) {
 	// upload array content to ssbo
 	gl.BindBuffer(gl.SHADER_STORAGE_BUFFER, ssbo.handle)
 	gl.BufferData(gl.SHADER_STORAGE_BUFFER, ssbo.typesize*ssbo.len, gl.Ptr(values), gl.DYNAMIC_COPY)
 	gl.BindBuffer(gl.SHADER_STORAGE_BUFFER, 0)
 }
+
+// UploadArray replaces the data on the GPU with the data in values in the range from start to start+len.
+// Make sure that the size of values matches the bytesize*len specified in the arguments.
 func (ssbo *SSBO) UploadArrayInRange(values []float32, start, len int) {
 	// upload array content to part of ssbo
 	gl.BindBuffer(gl.SHADER_STORAGE_BUFFER, ssbo.handle)
@@ -134,6 +161,7 @@ func (ssbo *SSBO) UploadArrayInRange(values []float32, start, len int) {
 	gl.BindBuffer(gl.SHADER_STORAGE_BUFFER, 0)
 }
 
+// Download returns a copy of the data on GPU.
 func (ssbo *SSBO) Download() []float32 {
 	// create slice of the right size
 	values := make([]float32, ssbo.len)
@@ -149,6 +177,7 @@ func (ssbo *SSBO) Download() []float32 {
 	return values
 }
 
+// init creates a buffer with a size of at least 1.
 func (ssbo *SSBO) init() {
 	// buffer must be at least of length 1
 	bufferlen := int(math.Max(float64(ssbo.len), 1.0))

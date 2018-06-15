@@ -1,3 +1,5 @@
+// Package engine provides an abstraction layer on top of OpenGL.
+// It contains entities relevant for rendering.
 package engine
 
 import (
@@ -8,17 +10,21 @@ import (
 	"strings"
 )
 
+// Obj contains vertices, normals and texture coordinates.
 type Obj struct {
 	Vertices  []float32
 	Normals   []float32
 	Texcoords []float32
 }
+
+// Face specifies three or more vertices with vertex position, normal and texture coordinate.
 type Face struct {
 	Vertices  []int
 	Normals   []int
 	Texcoords []int
 }
 
+// LoadObj load an Obj from the specified filepath.
 func LoadObj(filepath string) (Obj, error) {
 	// opening the file
 	file, err := os.Open(filepath)
@@ -173,6 +179,8 @@ func LoadObj(filepath string) (Obj, error) {
 	return Obj{vertices, normals, texcoords}, nil
 }
 
+// extractVertexProperty copies the vertex property of the triangle specifed by the indices idx1, idx2, idx3
+// offset times to the outslice.
 func extractVertexProperty(outSlice, inSlice *[]float32, idx1, idx2, idx3, offset int) {
 	idxs := []int{idx1, idx2, idx3}
 	for i := 0; i < 3; i++ {
@@ -183,6 +191,7 @@ func extractVertexProperty(outSlice, inSlice *[]float32, idx1, idx2, idx3, offse
 	}
 }
 
+// cross calculates the normal of the three vertices specified by the indices.
 func cross(vertices *[]float32, idx1, idx2, idx3 int) (float32, float32, float32) {
 	v1 := (*vertices)[(idx1-1)*3+0]
 	v2 := (*vertices)[(idx1-1)*3+1]
@@ -210,6 +219,7 @@ func cross(vertices *[]float32, idx1, idx2, idx3 int) (float32, float32, float32
 	return normalize(n1, n2, n3)
 }
 
+// normalize normalizes the vector (v1, v2,v3).
 func normalize(v1, v2, v3 float32) (float32, float32, float32) {
 	norm := float32(math.Sqrt(float64(v1*v1 + v2*v2 + v3*v3)))
 	if norm != 0.0 {
@@ -218,6 +228,7 @@ func normalize(v1, v2, v3 float32) (float32, float32, float32) {
 	return v1, v2, v3
 }
 
+// center moves all vertex positions to be relative to the center of gravitation.
 func center(vertices []float32) []float32 {
 	var (
 		x float32 = 0.0

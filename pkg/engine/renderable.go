@@ -1,71 +1,24 @@
+// Package engine provides an abstraction layer on top of OpenGL.
+// It contains entities relevant for rendering.
 package engine
 
 import (
 	"github.com/go-gl/gl/v4.3-core/gl"
 )
 
+// Renderable is an object that can be drawn by a renderer.
 type Renderable interface {
 	Build(shaderProgramHandle uint32)
 	Render()
 	RenderInstanced(instancecount int32)
 }
 
-type SquarePyramid struct {
-	vao VAO
-}
-
-func MakeSquarePyramid(width, depth, height float32) SquarePyramid {
-	// vertices
-	v1 := []float32{-1.0, 0.0, -1.0}
-	v2 := []float32{-1.0, 0.0, 1.0}
-	v3 := []float32{1.0, 0.0, 1.0}
-	v4 := []float32{1.0, 0.0, -1.0}
-	v5 := []float32{0.0, 1.0, 0.0}
-	vertices := combine(
-		// bottom
-		v1, v2, v3,
-		v1, v3, v4,
-		// left
-		v1, v5, v2,
-		// front
-		v1, v4, v5,
-		// right
-		v4, v3, v5,
-		// back
-		v3, v2, v5,
-	)
-	vertexBuffer := MakeVBO(vertices, 3, gl.STATIC_DRAW)
-	vertexBuffer.AddVertexAttribute("vert", 3, gl.FLOAT)
-
-	// colors
-	black := []float32{0.0, 0.0, 0.0}
-	colors := repeat(black, 18)
-	colorBuffer := MakeVBO(colors, 3, gl.STATIC_DRAW)
-	colorBuffer.AddVertexAttribute("color", 3, gl.FLOAT)
-
-	vao := MakeVAO(gl.TRIANGLES)
-	vao.AddVertexBuffer(&vertexBuffer)
-	vao.AddVertexBuffer(&colorBuffer)
-
-	return SquarePyramid{vao}
-}
-func (squarePyramid *SquarePyramid) Delete() {
-	squarePyramid.vao.Delete()
-}
-func (squarePyramid SquarePyramid) Build(shaderProgramHandle uint32) {
-	squarePyramid.vao.BuildBuffers(shaderProgramHandle)
-}
-func (squarePyramid SquarePyramid) Render() {
-	squarePyramid.vao.Render()
-}
-func (squarePyramid SquarePyramid) RenderInstanced(instancecount int32) {
-	squarePyramid.vao.RenderInstanced(instancecount)
-}
-
+// Cube is a Renderable that can be specified with different dimensions..
 type Cube struct {
 	vao VAO
 }
 
+// MakeCube creates a Cube with the specified half width, height and depth.
 func MakeCube(halfWidth, halfHeight, halfDepth float32) Cube {
 	// vertex positions
 	v1 := []float32{-halfWidth, halfHeight, halfDepth}
@@ -132,24 +85,37 @@ func MakeCube(halfWidth, halfHeight, halfDepth float32) Cube {
 
 	return Cube{vao}
 }
+
+// Delete destroys this Renderable.
 func (cube *Cube) Delete() {
 	cube.vao.Delete()
 }
+
+// Build prepares the vertex buffers for rendering.
+// It is called by the RenderProgram after adding it using AddRenderable
+// thus it is usually not advised to call it on your own.
 func (cube Cube) Build(shaderProgramHandle uint32) {
 	cube.vao.BuildBuffers(shaderProgramHandle)
 }
+
+// Render draws the geometry of this Renderable using the currently bound shader.
 func (cube Cube) Render() {
 	cube.vao.Render()
 }
+
+// RenderInstanced draws the geometry of this Renderable multiple times according to the instancecount.
 func (cube Cube) RenderInstanced(instancecount int32) {
 	cube.vao.RenderInstanced(instancecount)
 }
 
+// Skybox is a cube of size 2 ranging from -1 to 1 in all three dimensions.
+// It requires a cubemap as texture for its six sides.
 type Skybox struct {
 	vao     VAO
 	texture Texture
 }
 
+// MakeSkybox constructs a Skybox object with the given cubemapTexture.
 func MakeSkybox(cubeTexture Texture) Skybox {
 	var size float32 = 1.0
 	v0 := []float32{-size, -size, -size}
@@ -181,13 +147,21 @@ func MakeSkybox(cubeTexture Texture) Skybox {
 
 	return Skybox{vao, cubeTexture}
 }
+
+// Delete destroys this Renderable as well as the cubemapTexture.
 func (skybox *Skybox) Delete() {
 	skybox.vao.Delete()
 	skybox.texture.Delete()
 }
+
+// Build prepares the vertex buffers for rendering.
+// It is called by the RenderProgram after adding it using AddRenderable
+// thus it is usually not advised to call it on your own.
 func (skybox Skybox) Build(shaderProgramHandle uint32) {
 	skybox.vao.BuildBuffers(shaderProgramHandle)
 }
+
+// Render draws the geometry of this Renderable using the currently bound shader.
 func (skybox Skybox) Render() {
 	gl.DepthMask(false)
 	skybox.texture.Bind(0)
@@ -195,6 +169,8 @@ func (skybox Skybox) Render() {
 	skybox.texture.Unbind()
 	gl.DepthMask(true)
 }
+
+// RenderInstanced draws the geometry of this Renderable multiple times according to the instancecount.
 func (skybox Skybox) RenderInstanced(instancecount int32) {
 	gl.DepthMask(false)
 	skybox.texture.Bind(0)
