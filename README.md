@@ -58,6 +58,8 @@ To speed things up we only check two sides of the AABB. The point that is pointi
 
 Using View Frustum Culling only chunks that are either inside the View Frustum or intersect it are collected. The plane data of all selected chunks are uploaded into a vertex array buffer and are actually used. By this chunks that cannot be seen by the camera are not considered and thus precious computing time can be used on chunks that actually might appear inside the current frame.
 
+TODO
+
 ### Terrain rendering
 
 TODO
