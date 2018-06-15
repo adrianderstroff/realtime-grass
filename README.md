@@ -40,13 +40,23 @@ As mentioned earlier does the demo contain a seemingly infinite terrain. However
 
 Now only a small portion of the terrain is shown at once. A radius *r_i* around the camera is used to determine how many chunks are loaded around the camera. Every frame all chunks that are outside the radius *r_i* are being destroyed. Next missing chunks that are now inside the radius *r_i* are being created.
 
-When creating the chunk, a grid of tiles is created. For each tile the heights *h1, h2, h3, h4* of the four vertices that make up the tile are being taken from the height-map. For each tile the position of the tile and the plane data of both triangles that make of the tile are being stored. The plane equation is *Ax + By + Cz + D = 0* with **p** *= (x y z)* being a point on the plane, **n** *= (A B C)* the normal of the plane. *|D| /* ||**n**|| is the distance of the plane from the origin. The normal of a plane can be calculated by taking the cross product between the vertices of the tile. The two normals of both planes are **n1** = (**v1**-**v2**) x (**v3**-**v2**) for the upper right plane and **n2** = (**v4**-**v2**) x (**v3**-**v2**) for the lower right plane.
+When creating the chunk, a grid of tiles is created. For each tile the heights *h1, h2, h3, h4* of the four vertices that make up the tile are being taken from the height-map. For each tile the position of the tile and the plane data of both triangles that make of the tile are being stored. The plane equation is ![plane equation](/assets/images/github/plane.png) with **p** *= (x y z)* being a point on the plane, **n** *= (A B C)* the normal of the plane. 
+![plane distance](/assets/images/github/plane-dist.png) 
+is the distance of the plane from the origin. The normal of a plane can be calculated by taking the cross product between the vertices of the tile. The two normals of both planes are 
+![plane normal 1](/assets/images/github/plane-normal1.png) 
+for the upper right plane and 
+![plane normal 2](/assets/images/github/plane-normal2.png)  
+for the lower right plane.
 
-To speed up the check for chunks that have to be created, the current chunk *(px, pz)* the camera is in, is calculated. Only x- and z-coordinate are relevant. Then the radius in number of chunks is calculated as *r_c = ceil(r_i / t_c)* with *t_c* being the side length of a chunk. Then iterating from *(px-cx, pz-cz)* to *(px+cx, pz+cz)* and taking the current *x* and *z* position as a hash for a map that maps strings onto chunks. If the x-z-coordinate is not in the map it must mean that the respective chunk does not exist yet. If it is not existent the distance of this chunk to the chunk where the camera resides in is checked and if the distance is smaller than *r_i* then this chunk gets created and the coordinate of this newly created chunk is added together with the chunk to the map.
+To speed up the check for chunks that have to be created, the current chunk *(px, pz)* the camera is in, is calculated. Only x- and z-coordinate are relevant. Then the radius in number of chunks is calculated as 
+![chunk radius](/assets/images/github/chunk-radius.png) with *t_c* being the side length of a chunk. Then iterating from *(px-cx, pz-cz)* to *(px+cx, pz+cz)* and taking the current *x* and *z* position as a hash for a map that maps strings onto chunks. If the x-z-coordinate is not in the map it must mean that the respective chunk does not exist yet. If it is not existent the distance of this chunk to the chunk where the camera resides in is checked and if the distance is smaller than *r_i* then this chunk gets created and the coordinate of this newly created chunk is added together with the chunk to the map.
 
-### View frustum culling
+### View Frustum Culling
 
-TODO
+The used approach is the clip-space View Frustum Culling approach from [lighthouse3d.com](http://www.lighthouse3d.com/tutorials/view-frustum-culling/clip-space-approach-extracting-the-planes/). Using the view and projection matrix of the camera AABBs can be transformed into clip-space. Checking whether an AABB is inside the View Frustum is as easy as checking if the points of the transformed AABB are inside the clip-space which is now a cube. To check if a point is inside the View Frustum the point has to be inside all planes defined by the six sides of the View Frustum cube. If the point is on the outside of one plane then the point is outside of the View Frustum. 
+To speed things up we only check two sides of the AABB. The point that is pointing the most in direction of the plane's normal and the point that is on the opposite side of the first point. If one point of the AABB is inside the View Frustum and the other one is outside then the AABB gets intersected by the View Frustum.
+
+Using View Frustum Culling only chunks that are either inside the View Frustum or intersect it are collected. The plane data of all selected chunks are uploaded into a vertex array buffer and are actually used. By this chunks that cannot be seen by the camera are not considered and thus precious computing time can be used on chunks that actually might appear inside the current frame.
 
 ### Terrain rendering
 
