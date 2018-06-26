@@ -152,13 +152,21 @@ The velocity vector field is updated each frame. The velocity vector field is al
 
 ![acceleration vector field formula](/assets/images/github/acceleration-vector-field-view-dependent.png)
 
-Also relevant for the calculation of the new velocity is the acceleration *a* at *(x_c, y_c)*. However we only take acceleration vectors in account that are similiar to the movement direction of the camera. Let ***d**_c* be the normalized 2D direction of the camera from the last frame to the current frame. We will use the direction dependent acceleration ![acceleration view dependent](/assets/images/github/acceleration-view-dependent.png). Values of ***a**_d* are clamped between 0 and 1 to ignore vectors that face in the opposite direction of the view vector. The resulting vector field can be seen above. Here ***d**_c is shown in blue while the red vectors are the view dependent acceleration vectors.
+Also relevant for the calculation of the new velocity is the acceleration *a* at *(x_c, y_c)*. However we only take acceleration vectors in account that are similiar to the movement direction of the camera. Let ***d**_c* be the normalized 2D direction of the camera from the last frame to the current frame. We will use the direction dependent acceleration ![acceleration view dependent](/assets/images/github/acceleration-view-dependent.png). Values of ***a**_d* are clamped between 0 and 1 to ignore vectors that face in the opposite direction of the view vector. The resulting vector field can be seen above. Here ***d**_c* is shown in blue while the red vectors are the view dependent acceleration vectors.
 
 The new velocity is calculated by ***v**_n = d_w **v**_p + **a**_d* with *d_w* being a damping constant that gradually slows down the wind velocity. 
 
 ### Grass rendering and simulation
 
-TODO
+Each tile of the terrain is going to have multiple grass blades. As this will result in a big workload some optimizations have to be considered. During setup one buffer with random (x z) root positions of the grass blades is generated. This buffer contains all positions for one tile. It will be reused for each tile. This means that instanced rendering is going to be used. The number of instances equals the number of tiles that are actually rendered. Those tiles had been determined during the update of the terrain. Besides the root positions buffer, the wind velocities as well as the terrain plane data buffer are used. 
+
+The vertex shader simply passes the root positions through as well as the instance ID that is used to identify which plane data to use.
+
+The geometry shader is responsible for creating the grass blades based on the root positions. First using the plane data for the current tile the height of the current grass root position can be determined. A tile consists of two triangles with different slopes. Is x < z then the root position is on the upper left triangle else its on the lower right triangle. Similar as for the terrain, the y component of the grass root position can be calculated with ![plane height](/assets/images/github/plane-height.png). Next the LOD is calculated for the current tile. The distance of the center position of the tile to the camera is used to calculate the LOD with ![lod](/assets/images/github/lod.png), where *d_n* is the normalized distance of the camera to the tile center and *γ* determines how fast the function converges to zero. The LOD value will reach from 0 to 3 where close tiles will be of LOD level 3 and far away tiles LOD level 0.
+
+Based on the LOD, the grass blades are going to have more or less detailed geometry. LOD level 3 has grass blades with 5 segments, LOD level 2 has 3 segments, LOD level 1 has 1 segment and LOD level 0 only creates a rectangle of two triangles for the whole tile.
+
+TODO creating the segments.  
 
 ### Postprocessing
 
@@ -166,15 +174,40 @@ TODO
 
 Having an infinite View Frustum is impossible also having a big loading radius for the terrain is costly. To get away with a smaller loading radius fog can be used to let the terrain merge with the color of the background. In addition is the fog used to emulate the effect that far away objects have a blueish tint. 
 
-TODO explain tint origin + explain algorithm
+The effect occures because of athmospheric scattering. The fog is a medium that scatters light. Some of the bluish light of the sky is scattered towards the camera. This is called *in-scattering*. The greater the distance to an object the more *in-scattering* occurs. It doesn't have to be bluish. On an overcast day the athmospheric scattering can be grayish. In addition scattering near the sun can be a yellowish tint.
+
+The algorithm for calculating the fog had been taken from [www.iquilezles.org](http://www.iquilezles.org/www/articles/fog/fog.htm). Two intensities will be calculated. The first one describes the influence of the fog. The greater the distance *d_f* between the object and the camera the more fog is in between and the more athmospheric scattering occures. This intensity is modelled by ![fog](/assets/images/github/fog-intensity.png), with *b* being the density of the fog. The other intensity is the influence of the sun color. The closer the camera is looking towards the sun the more the fog turns into a yellowish tint. This can be modelled by taking the dot product between the normalized view direction of the camera *d_cam* and the normalized direction of the camera to the sun *d_sun*, thus the sun intensity is ![sun intensity](/assets/images/github/sun-intensity.png). By using the maximum function, cases in where the camera looks in the opposite direction to the sun are ignored. 
+
+To calculate the color of the fog depending to the view direction of the camera with respect to the sun can be calculated as linear interpolation between the color of the sky ***c**_sky* and the color of the sun ***c**_sun*. The color of the fog is then ![fog color](/assets/images/github/fog-color.png) where σ describes the spread of the sun color where higher values lead to a smaller influence of the sun color. 
+
+Finally the color of the fog is interpolated with the color of the object ***c**_obj* depending on the fog intensity. The resulting color ***c**_res* is ![fog color](/assets/images/github/result-color.png).
 
 #### Depth of Field (DoF)
 
-TODO
+A real camera can only show objects of a certain distance in acceptable sharpness. This depends on the aperture size, the focal length of the camera lense and the general distance to the object in question. To model the camera properties a distance where the image is completely sharp and a range where the objects are still acceptably sharp.
+
+First the image *I* is blurred using gaussian blur *I_gauss*. Taking the approach from [http://encelo.netsons.org](http://encelo.netsons.org/2008/04/15/depth-of-field-reloaded/) blur intensity can be calculated by using the distance to the fragment *d_f*, the focal range of the lense *f* and the range of acceptable sharpness *s* yielding ![blur intensity](/assets/images/github/blur.png). Using the blur intensity the depth of field color ***c**_res* can be calculated by ![blur color](/assets/images/github/dof-color.png). Here ***c**_b* is the color of the blurred image and ***c**_f* the color of the original image.
 
 #### Bloom
 
-TODO
+Bloom is also an camera artifact where areas of bright light bleed over dark edges. It is because the camera lens convolves the light with an airy disk.
+
+The bloom is calculated in two steps. The first step takes the initial image and calculates the luminocity and thresholding pixels to ignore pixels that are below this threshold *t*. The luminocity *l* of a pixel of color ***c**_f* is calculated by 
+
+![blur color](/assets/images/github/luminocity.png)
+
+where the second vector approximates the eye's sensibility towards different wave spectra. The eye has three different cone types to see colors. Those cones are sensitive to different kinds of wavelengths. The red and green receptors are overlapping each other in the green to red wavelengths which makes the eye more sensitive to green and red than to blue which is mostly covered by the blue receptor.
+
+The following image is taken from [wikipedia](https://en.wikipedia.org/wiki/Color_vision#/media/File:Cone-fundamentals-with-srgb-spectrum.svg).
+![normalized cone spectra](/assets/images/github/cone-spectra.png)
+
+Then the luminocity is then thresholded with the function 
+
+![normalized cone spectra](/assets/images/github/luminocity-threshold.png)
+
+to create a greater effect between bright and dark regions. Then this luminocity image that is the result of the first step gets blurred using gaussian blur to create the effect of light spilling over dark borders. In the second step the color of the original image ***c**_f** and the luminocity are simply added together 
+
+![normalized cone spectra](/assets/images/github/bloom-color.png).
 
 ## ToDo
 
