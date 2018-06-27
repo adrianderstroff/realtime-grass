@@ -245,14 +245,6 @@ Then the luminocity is then thresholded with the function
 
 ![normalized cone spectra](/assets/images/github/luminocity-threshold.png)
 
-to create a greater effect between bright and dark regions. Then this luminocity image that is the result of the first step gets blurred using gaussian blur to create the effect of light spilling over dark borders. In the second step the color of the original image ***c**_f** and the luminocity are simply added together 
+to create a greater effect between bright and dark regions. Then this luminocity image that is the result of the first step gets blurred using gaussian blur to create the effect of light spilling over dark borders. In the second step the color of the original image ***c**_f* and the luminocity are simply added together 
 
 ![normalized cone spectra](/assets/images/github/bloom-color.png).
-
-## ToDo
-
-- [ ] Consistent variable and struct naming
-- [ ] Using references where possible
-- [ ] Rework Mesh code
-- [ ] Rework Texture and Image
-- [ ] Split Window and Interaction
