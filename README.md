@@ -162,11 +162,51 @@ Each tile of the terrain is going to have multiple grass blades. As this will re
 
 The vertex shader simply passes the root positions through as well as the instance ID that is used to identify which plane data to use.
 
+#### Creating the grass blade
+
 The geometry shader is responsible for creating the grass blades based on the root positions. First using the plane data for the current tile the height of the current grass root position can be determined. A tile consists of two triangles with different slopes. Is x < z then the root position is on the upper left triangle else its on the lower right triangle. Similar as for the terrain, the y component of the grass root position can be calculated with ![plane height](/assets/images/github/plane-height.png). Next the LOD is calculated for the current tile. The distance of the center position of the tile to the camera is used to calculate the LOD with ![lod](/assets/images/github/lod.png), where *d_n* is the normalized distance of the camera to the tile center and *γ* determines how fast the function converges to zero. The LOD value will reach from 0 to 3 where close tiles will be of LOD level 3 and far away tiles LOD level 0.
+
+![lod](/assets/images/github/segments.png)
 
 Based on the LOD, the grass blades are going to have more or less detailed geometry. LOD level 3 has grass blades with 5 segments, LOD level 2 has 3 segments, LOD level 1 has 1 segment and LOD level 0 only creates a rectangle of two triangles for the whole tile.
 
-TODO creating the segments.  
+#### Wind
+
+Besides the detail of the grass blades *N_blade* also the number of grass blades per tile based on the LOD level is decreased.
+|LOD| blade count      |
+|---|------------------|
+| 3 | *N_blade*        |
+| 2 | *0.95 * N_blade* |
+| 1 | *0.85 * N_blade* |
+| 0 | *1*              |
+
+The grass should be influenced by the wind. The wind velocity force field is always centered at the position of the camera and the cells of the force field align with the tiles of the terrain. Using the wind velocity **v** for the current tile all segments of the grass blade are going to be displaced by the velocity of the wind. Each vertex of position **p** is displaced by
+
+![lod](/assets/images/github/displaced-pos.png),
+
+where *c = 1 - v* and *v* in this case is the texture coordinate of the current vertex. In addition to displacing the grass blades based on the wind velocity the blades should wave in the wind. There is a proportional relationship between the bending of the grass blade and the waving area. Assuming that the wind is only blowing in the x-z space, bended grass blades have a smaller area that is affected by the wind than grass blades that are straight pointing upwards. This means that area of occilation decreases the stronger the grass blade is bended.
+
+![lod](/assets/images/github/grass-bend.png)
+
+The first part of the equation decribes the difference between the root position height of the grass blade **r** and the height of the current vertex **p**. The second part takes the magnitude of the wind velocity and scales it by a bending constant *c_b* between 0 and 1. The time function is a sinusoidal function that models the waving of the grass depending the current time *t*. By using the displaced position and then applying the following function the final position of the grass blade vertex is calculated.
+
+![lod](/assets/images/github/time-bend.png)
+
+#### Randomization
+
+At this point each grass blade of one blade looks the same which creates a very artificial look. Thus randomization is introduced at several places to make the grass look more natural. Usually a noise texture could be used that each grass blade samples from but each grass root position ***r*** is already randomized in its *x* and *z* position, so those positions could be used. In addition is the position of the tile ***t*** used as well so that grass blades in neighboring tiles look distinct from each other. A random value *r* can be calculated by ![lod](/assets/images/github/rand.png). Here the function f returns the fractional part of a number.
+
+Now using this random number several parts of the grass generation can be randomized. First the root positions of the grass are the same in each tile. To change this each grass root position can be shifted in *x* and *z* direction. However both positions must be in the range from 0 to 1. Thus the *x* and *z* components are looped so that they are always in this range.
+
+Next the appearance of the grass blade is going to be randomized. This will affect the width, height and the used texture of the grass blade. The latter will be encoded with a texture ID. Three different textures had been used for the grass in different stages of its life. A fourth texture is used for the LOD level 0 tile.
+
+Lastly the waving of the grass blade is randomized by assigning random frequencies and phase shifts ![lod](/assets/images/github/rand-time.png). The *%* is the modulo operator that returns the remainder of the division *t / f*.
+
+#### Grass rendering
+
+The rendering of the grass uses two textures. The first texture is determined by the texture ID assigned randomly in the geometry shader. Here one of three color textures is chosen. The second texture is a alpha-texture that determines if a fragment is discarded. This technique is called alpha-to-coverage and it basically cuts out the part of color texture that contains the grass. However is the second texture only used for LOD levels 1 to 3 as LOD level 0 is the tile with a special color texture.
+
+After sampling from the color texture grass gets specular lighting. To emulate ambient occlusion that makes grass blades darker at the bottom the resulting color of the shading is linearily interpolated with black using the *v* component of the uv coordinate of the current fragment ![lod](/assets/images/github/grass-ao.png). Thus the final color is ![lod](/assets/images/github/grass-shaded.png).
 
 ### Postprocessing
 
