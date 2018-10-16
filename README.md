@@ -173,6 +173,7 @@ Based on the LOD, the grass blades are going to have more or less detailed geome
 #### Wind
 
 Besides the detail of the grass blades *N_blade* also the number of grass blades per tile based on the LOD level is decreased.
+
 |LOD| blade count      |
 |---|------------------|
 | 3 | *N_blade*        |
