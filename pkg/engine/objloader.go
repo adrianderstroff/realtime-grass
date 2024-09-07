@@ -107,7 +107,7 @@ func LoadObj(filepath string) (Obj, error) {
 					neighborhood[vertexIdx] = []int{faceIdx}
 				} else {
 					neighbors := neighborhood[vertexIdx]
-					neighbors = append(neighbors, faceIdx)
+					neighborhood[vertexIdx] = append(neighbors, faceIdx)
 				}
 			}
 			faces = append(faces, face)

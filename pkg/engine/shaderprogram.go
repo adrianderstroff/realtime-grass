@@ -20,21 +20,21 @@ func MakeProgram(vertexShaderPath, fragmentShaderPath string) (ShaderProgram, er
 	// loads files
 	vertexShaderSource, err := loadFile(vertexShaderPath)
 	if err != nil {
-		return ShaderProgram{}, fmt.Errorf("Error on: %v\n%v", vertexShaderPath, err)
+		return ShaderProgram{}, fmt.Errorf("error on: %v\n%v", vertexShaderPath, err)
 	}
 	fragmentShaderSource, err := loadFile(fragmentShaderPath)
 	if err != nil {
-		return ShaderProgram{}, fmt.Errorf("Error on: %v\n%v", fragmentShaderPath, err)
+		return ShaderProgram{}, fmt.Errorf("error on: %v\n%v", fragmentShaderPath, err)
 	}
 
 	// compile shaders
 	vertexShader, err := compileShader(vertexShaderSource, gl.VERTEX_SHADER)
 	if err != nil {
-		return ShaderProgram{}, fmt.Errorf("Error on: %v\n%v", vertexShaderPath, err)
+		return ShaderProgram{}, fmt.Errorf("error on: %v\n%v", vertexShaderPath, err)
 	}
 	fragmentShader, err := compileShader(fragmentShaderSource, gl.FRAGMENT_SHADER)
 	if err != nil {
-		return ShaderProgram{}, fmt.Errorf("Error on: %v\n%v", fragmentShaderPath, err)
+		return ShaderProgram{}, fmt.Errorf("error on: %v\n%v", fragmentShaderPath, err)
 	}
 
 	// create and link program
@@ -69,29 +69,29 @@ func MakeGeomProgram(vertexShaderPath, geometryShaderPath, fragmentShaderPath st
 	// loads files
 	vertexShaderSource, err := loadFile(vertexShaderPath)
 	if err != nil {
-		return ShaderProgram{}, fmt.Errorf("Error on: %v\n%v", vertexShaderPath, err)
+		return ShaderProgram{}, fmt.Errorf("error on: %v\n%v", vertexShaderPath, err)
 	}
 	geometryShaderSource, err := loadFile(geometryShaderPath)
 	if err != nil {
-		return ShaderProgram{}, fmt.Errorf("Error on: %v\n%v", geometryShaderPath, err)
+		return ShaderProgram{}, fmt.Errorf("error on: %v\n%v", geometryShaderPath, err)
 	}
 	fragmentShaderSource, err := loadFile(fragmentShaderPath)
 	if err != nil {
-		return ShaderProgram{}, fmt.Errorf("Error on: %v\n%v", fragmentShaderPath, err)
+		return ShaderProgram{}, fmt.Errorf("error on: %v\n%v", fragmentShaderPath, err)
 	}
 
 	// compile shaders
 	vertexShader, err := compileShader(vertexShaderSource, gl.VERTEX_SHADER)
 	if err != nil {
-		return ShaderProgram{}, fmt.Errorf("Error on: %v\n%v", vertexShaderPath, err)
+		return ShaderProgram{}, fmt.Errorf("error on: %v\n%v", vertexShaderPath, err)
 	}
 	geometryShader, err := compileShader(geometryShaderSource, gl.GEOMETRY_SHADER)
 	if err != nil {
-		return ShaderProgram{}, fmt.Errorf("Error on: %v\n%v", geometryShaderPath, err)
+		return ShaderProgram{}, fmt.Errorf("error on: %v\n%v", geometryShaderPath, err)
 	}
 	fragmentShader, err := compileShader(fragmentShaderSource, gl.FRAGMENT_SHADER)
 	if err != nil {
-		return ShaderProgram{}, fmt.Errorf("Error on: %v\n%v", fragmentShaderPath, err)
+		return ShaderProgram{}, fmt.Errorf("error on: %v\n%v", fragmentShaderPath, err)
 	}
 
 	// create and link program
@@ -129,13 +129,13 @@ func MakeComputeProgram(computeShaderPath string) (ShaderProgram, error) {
 	// loads files
 	computeShaderSource, err := loadFile(computeShaderPath)
 	if err != nil {
-		return ShaderProgram{}, fmt.Errorf("Error on: %v\n%v", computeShaderPath, err)
+		return ShaderProgram{}, fmt.Errorf("error on: %v\n%v", computeShaderPath, err)
 	}
 
 	// compile shaders
 	computeShader, err := compileShader(computeShaderSource, gl.COMPUTE_SHADER)
 	if err != nil {
-		return ShaderProgram{}, fmt.Errorf("Error on: %v\n%v", computeShaderPath, err)
+		return ShaderProgram{}, fmt.Errorf("error on: %v\n%v", computeShaderPath, err)
 	}
 
 	// create and link program
@@ -285,7 +285,7 @@ func compileShader(source string, shaderType uint32) (uint32, error) {
 
 // getGLError checks for an error during shader compilation.
 // If an error has been occured it will return this error with a human readable error message.
-func getGLError(shader uint32, statusType int) error {
+func getGLError(shader uint32, _ int) error {
 	var status int32
 	gl.GetShaderiv(shader, gl.COMPILE_STATUS, &status)
 	if status == gl.FALSE {
@@ -294,7 +294,7 @@ func getGLError(shader uint32, statusType int) error {
 		log := strings.Repeat("\x00", int(logLength))
 		gl.GetShaderInfoLog(shader, logLength, nil, gl.Str(log))
 
-		return fmt.Errorf(log)
+		return fmt.Errorf("%s", log)
 	}
 	return nil
 }
