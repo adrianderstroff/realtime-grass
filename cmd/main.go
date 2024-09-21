@@ -18,8 +18,8 @@ const (
 )
 
 var (
-	width         int32   = 800
-	height        int32   = 600
+	width         int32   = 1200
+	height        int32   = 500
 	terrainheight float32 = 300.0
 	viewdist      float32 = 5000.0
 	windradius    int32   = 30

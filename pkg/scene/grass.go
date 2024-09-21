@@ -33,7 +33,8 @@ type Grass struct {
 // The windradius is the radius of the Wind grid.
 func MakeGrass(shaderpath, texpath string, bladecount int, height, viewdist float32, windradius int32) (Grass, error) {
 	// make shader
-	shader, err := engine.MakeGeomProgram(shaderpath+"/grass/grass.vert", shaderpath+"/grass/grass.geom", shaderpath+"/grass/grass.frag")
+	// shader, err := engine.MakeGeomProgram(shaderpath+"/grass/grass.vert", shaderpath+"/grass/grass.geom", shaderpath+"/grass/grass.frag")
+	shader, err := engine.MakeGeomProgram(shaderpath+"/grass/grass.vert", shaderpath+"/grass/grass-dist.geom", shaderpath+"/grass/grass-dist.frag")
 	if err != nil {
 		return Grass{}, err
 	}
