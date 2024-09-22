@@ -132,6 +132,22 @@ func (fbo *FBO) CopyToScreenRegion(index uint32, x1, y1, w1, h1, x2, y2, w2, h2 
 	gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
 }
 
+// CopyToScreenRegion copies all color and depth textures within a region specified by the position (x1,y1) and width w1 and height h1
+// to the default frame buffer in the region (x2,y2) and the width w2 and height h2.
+func (fbo *FBO) CopyToScreenRegionLinear(index uint32, x1, y1, w1, h1, x2, y2, w2, h2 int32) {
+	gl.BindFramebuffer(gl.DRAW_FRAMEBUFFER, 0)
+	gl.DrawBuffer(gl.BACK)
+	gl.BindFramebuffer(gl.READ_FRAMEBUFFER, fbo.handle)
+	gl.ReadBuffer(gl.COLOR_ATTACHMENT0 + index)
+	gl.BlitFramebuffer(
+		x1, y1, x1+w1, y1+h1,
+		x2, y2, x2+w2, y2+h2,
+		gl.COLOR_BUFFER_BIT,
+		gl.LINEAR,
+	)
+	gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
+}
+
 // CopyToFBO copies all color and depth textures to another FBO.
 func (fbo *FBO) CopyToFBO(other *FBO, x, y, width, height int32) {
 	fbo.CopyToFBORegion(other, x, y, width, height, x, y, width, height)

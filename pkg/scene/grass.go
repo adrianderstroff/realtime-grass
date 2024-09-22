@@ -5,6 +5,7 @@ import (
 	"math/rand"
 
 	"github.com/go-gl/gl/v4.3-core/gl"
+	"github.com/go-gl/glfw/v3.2/glfw"
 	"github.com/go-gl/mathgl/mgl32"
 
 	"github.com/adrianderstroff/realtime-grass/pkg/engine"
@@ -13,6 +14,7 @@ import (
 // Grass renders individual grass blades on every Tile of the Terrain.
 type Grass struct {
 	shader        engine.ShaderProgram
+	lod_shader    engine.ShaderProgram
 	buffer        engine.Mesh
 	grassAlpha    engine.Texture
 	grassDiffuse0 engine.Texture
@@ -24,6 +26,7 @@ type Grass struct {
 	viewdist      float32
 	time          float32
 	windradius    int32
+	show_lod      bool
 }
 
 // MakeGrass constructs the Grass entity.
@@ -33,8 +36,11 @@ type Grass struct {
 // The windradius is the radius of the Wind grid.
 func MakeGrass(shaderpath, texpath string, bladecount int, height, viewdist float32, windradius int32) (Grass, error) {
 	// make shader
-	// shader, err := engine.MakeGeomProgram(shaderpath+"/grass/grass.vert", shaderpath+"/grass/grass.geom", shaderpath+"/grass/grass.frag")
-	shader, err := engine.MakeGeomProgram(shaderpath+"/grass/grass.vert", shaderpath+"/grass/grass-dist.geom", shaderpath+"/grass/grass-dist.frag")
+	shader, err := engine.MakeGeomProgram(shaderpath+"/grass/grass.vert", shaderpath+"/grass/grass.geom", shaderpath+"/grass/grass.frag")
+	if err != nil {
+		return Grass{}, err
+	}
+	lod_shader, err := engine.MakeGeomProgram(shaderpath+"/grass/grass.vert", shaderpath+"/grass/grass-dist.geom", shaderpath+"/grass/grass-dist.frag")
 	if err != nil {
 		return Grass{}, err
 	}
@@ -53,6 +59,7 @@ func MakeGrass(shaderpath, texpath string, bladecount int, height, viewdist floa
 	mesh := engine.MakeEmptyMesh(gl.POINTS)
 	mesh.SetVAO(vao)
 	shader.AddRenderable(mesh)
+	lod_shader.AddRenderable(mesh)
 
 	// load grass texture
 	grassalpha, err := engine.MakeTextureFromPath(texpath + "grassAlpha.png")
@@ -84,6 +91,7 @@ func MakeGrass(shaderpath, texpath string, bladecount int, height, viewdist floa
 
 	return Grass{
 		shader,
+		lod_shader,
 		mesh,
 		grassalpha,
 		grassdiffuse0,
@@ -95,13 +103,28 @@ func MakeGrass(shaderpath, texpath string, bladecount int, height, viewdist floa
 		viewdist,
 		0.0,
 		windradius,
+		false,
 	}, nil
+}
+
+func (grass *Grass) OnKeyPress(key, action, mods int) bool {
+	if key == int(glfw.KeyJ) && action == int(glfw.Release) {
+		grass.show_lod = !grass.show_lod
+	}
+
+	return false
 }
 
 // Render draws all grass blades using a LOD approach.
 func (grass *Grass) Render(instancecount int32, tilesize float32, M, V, P mgl32.Mat4, camerapos mgl32.Vec3) {
 	lightdir := mgl32.Vec3{10.0, 0.0, 10.0}
 	lightcolor := mgl32.Vec3{1.0, 1.0, 0.0}
+
+	// use the right shader depending on the user input
+	shader := grass.shader
+	if grass.show_lod {
+		shader = grass.lod_shader
+	}
 
 	grass.grassAlpha.Bind(0)
 	grass.grassDiffuse0.Bind(1)
@@ -110,24 +133,24 @@ func (grass *Grass) Render(instancecount int32, tilesize float32, M, V, P mgl32.
 	grass.grassDiffuse3.Bind(4)
 
 	// render terrain
-	grass.shader.Use()
-	grass.shader.UpdateMat4("M", M)
-	grass.shader.UpdateMat4("V", V)
-	grass.shader.UpdateMat4("P", P)
-	grass.shader.UpdateFloat32("grassHeight", grass.height)
-	grass.shader.UpdateInt32("bladeCount", grass.bladecount)
-	grass.shader.UpdateFloat32("tilesize", tilesize)
-	grass.shader.UpdateVec3("cameraPos", camerapos)
-	grass.shader.UpdateVec3("lightDir", lightdir)
-	grass.shader.UpdateVec3("lightColor", lightcolor)
-	grass.shader.UpdateFloat32("ambientIntensity", 0.4)
-	grass.shader.UpdateFloat32("diffuseIntensity", 0.4)
-	grass.shader.UpdateFloat32("d1", grass.viewdist/8)
-	grass.shader.UpdateFloat32("d2", grass.viewdist)
-	grass.shader.UpdateFloat32("t", grass.time)
+	shader.Use()
+	shader.UpdateMat4("M", M)
+	shader.UpdateMat4("V", V)
+	shader.UpdateMat4("P", P)
+	shader.UpdateFloat32("grassHeight", grass.height)
+	shader.UpdateInt32("bladeCount", grass.bladecount)
+	shader.UpdateFloat32("tilesize", tilesize)
+	shader.UpdateVec3("cameraPos", camerapos)
+	shader.UpdateVec3("lightDir", lightdir)
+	shader.UpdateVec3("lightColor", lightcolor)
+	shader.UpdateFloat32("ambientIntensity", 0.4)
+	shader.UpdateFloat32("diffuseIntensity", 0.4)
+	shader.UpdateFloat32("d1", grass.viewdist/8)
+	shader.UpdateFloat32("d2", grass.viewdist)
+	shader.UpdateFloat32("t", grass.time)
 	// wind related uniforms
-	grass.shader.UpdateInt32("radius", grass.windradius)
-	grass.shader.RenderInstanced(instancecount)
+	shader.UpdateInt32("radius", grass.windradius)
+	shader.RenderInstanced(instancecount)
 
 	grass.grassAlpha.Unbind()
 	grass.grassDiffuse0.Unbind()

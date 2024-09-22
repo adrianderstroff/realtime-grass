@@ -82,13 +82,13 @@ func MakePostprocessing(shaderpath string, width, height int32) (Postprocessing,
 }
 
 // Bloom enhances bright pixels and darkens the rest.
-func (pp *Postprocessing) Bloom(fbo *engine.FBO) {
+func (pp *Postprocessing) Bloom(fbo *engine.FBO, threshold float32) {
 	// calculate per pixel luminocity
 	pp.fboa.Bind()
 	pp.fboa.Clear()
 	fbo.ColorTextures[0].Bind(0)
 	pp.luminocityshader.Use()
-	pp.luminocityshader.UpdateFloat32("threshold", 0.85)
+	pp.luminocityshader.UpdateFloat32("threshold", threshold)
 	pp.luminocityshader.Render()
 	fbo.ColorTextures[0].Unbind()
 	pp.fboa.Unbind()

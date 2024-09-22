@@ -241,6 +241,10 @@ func (terrain *Terrain) GetHeight(pos mgl32.Vec3) float32 {
 	return height
 }
 
+func (terrain *Terrain) OnKeyPress(key, action, mods int) bool {
+	return terrain.grass.OnKeyPress(key, action, mods)
+}
+
 // load creates new Chunks that are within the viewing distance to the camera at position pos.
 // New Chunks are only created if they are not present yet.
 func (terrain *Terrain) load(pos mgl32.Vec3) {

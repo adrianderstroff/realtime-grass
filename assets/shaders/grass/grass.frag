@@ -49,6 +49,10 @@ void main() {
         mixFactor = 1-i.uv.y;
     }
 
+    //vec3 n = normalize(i.normal);
+    //vec3 l = normalize(lightDir);
+    //specularFactor = pow(max(0.99, dot(n, l)), 50.0);
+
     // combine everything
     fragColor = grassColor + (lightColor * specularFactor);
     fragColor = mix(vec3(0.0, 0.0, 0.0), fragColor, mixFactor*mixFactor);

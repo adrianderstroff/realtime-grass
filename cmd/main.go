@@ -18,14 +18,15 @@ const (
 )
 
 var (
-	width         int32   = 1200
-	height        int32   = 500
-	terrainheight float32 = 300.0
-	viewdist      float32 = 5000.0
-	windradius    int32   = 30
-	windinfluence float32 = 4.0
-	bladecount    int     = 100
-	grassHeight   float32 = 50.0
+	width            int32   = 1200
+	height           int32   = 500
+	terrainheight    float32 = 300.0
+	viewdist         float32 = 5000.0
+	windradius       int32   = 30
+	windinfluence    float32 = 4.0
+	bladecount       int     = 100
+	grassHeight      float32 = 50.0
+	supersamplescale int32   = 2
 )
 
 func main() {
@@ -45,6 +46,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	windowManager.AddKeyPressHandler(terrain.OnKeyPress)
 
 	// make skybox
 	sky, err := scene.MakeSky(SHADER_PATH, SKY_PATH)
@@ -58,13 +60,13 @@ func main() {
 	oldpos := camera.Pos
 
 	// fbo
-	fbo := engine.MakeFBO(width, height)
+	fbo := engine.MakeFBO(width*supersamplescale, height*supersamplescale)
 	if !fbo.IsComplete() {
 		panic("Fbo not complete")
 	}
 
 	// postprocessing
-	pp, err := scene.MakePostprocessing(SHADER_PATH, width, height)
+	pp, err := scene.MakePostprocessing(SHADER_PATH, width*supersamplescale, height*supersamplescale)
 	if err != nil {
 		panic(err)
 	}
@@ -103,7 +105,7 @@ func main() {
 		fbo.Unbind()
 
 		// apply dof and bloom
-		pp.Bloom(&fbo)
+		pp.Bloom(&fbo, 0.99)
 		pp.DOF(&fbo)
 
 		// render skybox
@@ -116,7 +118,7 @@ func main() {
 		pp.Fog(&fbo, &camera)
 
 		// render fbo to screen
-		fbo.CopyToScreen(0, 0, 0, width, height)
+		fbo.CopyToScreenRegionLinear(0, 0, 0, 2*width, 2*height, 0, 0, width, height)
 
 		// update old camera pos
 		oldpos = camera.Pos
